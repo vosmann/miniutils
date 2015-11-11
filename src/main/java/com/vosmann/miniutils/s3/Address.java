@@ -18,6 +18,10 @@ public class Address {
     private final String bucket;
     private final String key;
 
+    public static Address of(final String bucket, final String key) {
+        return new Builder().bucket(bucket).keyPart(key).build();
+    }
+
     private Address(Builder builder) {
         bucket = builder.bucket;
         key = builder.keyParts.stream().collect(joining(SLASH));
@@ -60,4 +64,8 @@ public class Address {
         return Stream.of(S3_PREFIX, bucket, key).collect(joining(SLASH));
     }
 
+    @Override
+    public String toString() {
+        return "Address{" + "bucket='" + bucket + ", key='" + key + '}';
+    }
 }

@@ -1,44 +1,61 @@
 package com.vosmann.miniutils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class Data {
 
-    // private static final Logger LOG = LoggerFactory.getLogger(Data.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Data.class);
+    private static final int WARN_SIZE = 10 * 1024 * 1024;  // 10 MiB.
 
-    private final int maxSize;
     private byte[] bytes;
 
-    public Data(final int maxSize) {
-        this.maxSize = maxSize;
+    private Data(byte[] bytes) {
+        this.bytes = bytes;
     }
 
-    public void load(final String string) {
-        checkArgument(bytes == null, "Can't load more than once.");
-        checkArgument(string.length() <= maxSize, "String too long.");
-        bytes = string.getBytes();
+    public static Data empty() {
+        return new Data(new byte[0]);
     }
 
-    public void load(final long size, final InputStream stream) {
-        checkArgument(size > 0, "Size must be positive.");
+    public static Data from(final String string) {
+        warnSize(string.length());
+        return new Data(string.getBytes());
+    }
+
+    public static Data from(final long size, final InputStream stream) {
         checkArgument(size <= Integer.MAX_VALUE, "Size doesn't fit into an int.");
-        load((int) size, stream);
+        return from((int) size, stream);
     }
 
-    public void load(final int size, final InputStream stream) {
-        checkArgument(size <= maxSize, "String too long.");
-        checkArgument(bytes == null, "Can't load more than once.");
-        bytes = new byte[size];
-        try (final InputStream input = new BufferedInputStream(stream)) {
-            input.read(bytes);
+    public static Data from(final int size, final InputStream stream) {
+        checkArgument(size > 0, "Size must be positive.");
+        warnSize(size);
+        final byte[] bytes = new byte[size];
+        try {
+            stream.read(bytes); // Reads at most bytes.length bytes from the stream.
+            if (stream.read() != -1) {
+                LOG.warn("InputStream contained more data than was read.");
+            }
+            stream.close();
+            return new Data(bytes);
         } catch (final IOException e) {
-            // LOG.error("Could not load data from input stream.", e);
+            LOG.error("Could not load data from input stream. Returning empty.", e);
+            return Data.empty();
         }
+
+    }
+
+    public int getSize() {
+        return bytes.length;
     }
 
     public InputStream toInputStream() {
@@ -50,7 +67,28 @@ public class Data {
         return new String(bytes);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Data data = (Data) o;
+        if (bytes.length != data.bytes.length) return false;
+        return Arrays.equals(bytes, data.bytes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bytes);
+    }
+
+    private static void warnSize(final int size) {
+        if (size > WARN_SIZE) {
+            LOG.warn("Loading a data bigger than {} B.");
+        }
+    }
+
 }
+
 /*
 plus ono nešto tipa obriši sve starije od ovog datuma
 
