@@ -9,7 +9,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.stream.Collectors.joining;
 
-public class S3Address {
+public class Address {
 
     private static final String HTTP_PREFIX = "http://s3.amazonaws.com";
     private static final String S3_PREFIX = "s3:/"; // Second slash comes as delim.
@@ -18,7 +18,7 @@ public class S3Address {
     private final String bucket;
     private final String key;
 
-    private S3Address(Builder builder) {
+    private Address(Builder builder) {
         bucket = builder.bucket;
         key = builder.keyParts.stream().collect(joining(SLASH));
     }
@@ -39,8 +39,8 @@ public class S3Address {
             return this;
         }
 
-        public S3Address build() {
-            return new S3Address(this);
+        public Address build() {
+            return new Address(this);
         }
     }
 
