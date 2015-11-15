@@ -115,21 +115,3 @@ public class Data {
 
 }
 
-/*
-plus ono nešto tipa obriši sve starije od ovog datuma
-
-plus neka datumska klasa koja samo wrapa Instante
-treba imat factory metode: from(string, "yyyy-MM-dd") i onda sve što fali postavi na nulu.
-također treba imat i metodu to("yyyy-MM-dd-hh-mm");
-vjerojatno bi sve mogla vraćat kao UTC, ali čuvati u sebi i zonski offset lokalnog vremena ili tako nešto
-
-plus onaj generator intervala datuma s određenom preciznošću:
-npr.
-2015-12-21-05-01,
-2015-12-21-05-02,
-2015-12-21-05-03
-ili pak
-2015-12-21,
-2015-12-22,
-2015-12-23
-*/
