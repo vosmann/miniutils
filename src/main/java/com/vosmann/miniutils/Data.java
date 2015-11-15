@@ -3,14 +3,17 @@ package com.vosmann.miniutils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * Loads from a stream or string into an in-memory byte array in one go.
+ */
 public class Data {
 
     private static final Logger LOG = LoggerFactory.getLogger(Data.class);
@@ -36,20 +39,35 @@ public class Data {
         return from((int) size, stream);
     }
 
-    public static Data from(final int size, final InputStream stream) {
-        checkArgument(size > 0, "Size must be positive.");
-        warnSize(size);
-        final byte[] bytes = new byte[size];
+    public static Data from(final int maxSize, final InputStream stream /* inputStream */) {
+        checkArgument(maxSize > 0, "Max size must be positive.");
+        warnSize(maxSize);
         try {
-            stream.read(bytes); // Reads at most bytes.length bytes from the stream.
-            if (stream.read() != -1) {
-                LOG.warn("InputStream contained more data than was read.");
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            final byte[] buffer = new byte[4096];
+            while(true) {
+                final int nrRead = stream.read(buffer);
+                if( nrRead < 0) {
+                    break;
+                }
+                final int nrToWrite = Math.min(nrRead, maxSize - baos.size());
+                if (nrRead > nrToWrite) {
+                    LOG.warn("InputStream contained more data than was read.");
+                }
+                baos.write(buffer, 0, nrToWrite);
+                if (nrToWrite < nrRead) {
+                    break;
+                }
             }
-            stream.close();
+            byte[] bytes = baos.toByteArray(); // Another copy.
+
+            LOG.info("Read {}B from stream. Returning array of that length.", bytes.length);
             return new Data(bytes);
-        } catch (final IOException e) {
+        } catch (final IOException | RuntimeException e) {
             LOG.error("Could not load data from input stream. Returning empty.", e);
             return Data.empty();
+        } finally {
+            close(stream); // Doesn't get called only if System.exit(), thread interrupt or JVM crash.
         }
 
     }
@@ -83,7 +101,15 @@ public class Data {
 
     private static void warnSize(final int size) {
         if (size > WARN_SIZE) {
-            LOG.warn("Loading a data bigger than {} B.");
+            LOG.warn("Loading data bigger than {} B.");
+        }
+    }
+
+    private static void close(final InputStream stream) {
+        try {
+            stream.close();
+        } catch (final IOException e) {
+            LOG.warn("Could not close input stream.");
         }
     }
 

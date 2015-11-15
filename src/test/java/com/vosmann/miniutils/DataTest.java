@@ -1,6 +1,5 @@
 package com.vosmann.miniutils;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -52,15 +51,17 @@ public class DataTest {
     }
 
     @Test
+    public void testStreamShorterThanExpected() {
+        final Data fromStream = Data.from(50, new ByteArrayInputStream("abcd".getBytes()));
+        assertThat(fromStream.getSize(), is(4));
+        assertThat(fromStream, is(Data.from("abcd")));
+    }
+
+    @Test
     public void testStreamLongerThanExpected() {
         final Data fromStream = Data.from(2, new ByteArrayInputStream("abcdefgh".getBytes()));
         assertThat(fromStream.getSize(), is(2));
         assertThat(fromStream, is(Data.from("ab")));
-    }
-
-    @Test
-    public void testStreamShorterThanExpected() {
-        Assert.fail();
     }
 
     @Test
@@ -91,6 +92,16 @@ public class DataTest {
     public void testLoadLongSize() {
         final InputStream fakeStream = null;
         Data.from(Integer.MAX_VALUE + 1L, fakeStream);
+    }
+
+    @Test
+    public void testStreamAvailable() throws IOException {
+        final InputStream stream = new ByteArrayInputStream("ab".getBytes());
+        assertThat(stream.available(), is(2));
+        stream.read();
+        assertThat(stream.available(), is(1));
+        stream.read();
+        assertThat(stream.available(), is(0));
     }
 
 }
