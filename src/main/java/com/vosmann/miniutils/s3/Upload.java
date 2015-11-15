@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Upload implements Runnable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StringDownload.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Upload.class);
 
     private final Address address;
     private final ObjectMetadata metadata;
@@ -34,7 +34,7 @@ public class Upload implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Uploading {} bytes from input stream to {}.", address);
+        LOG.info("Uploading {} bytes from input stream to {}.", metadata.getContentLength(), address);
         try {
             client.putObject(address.getBucket(), address.getKey(), stream, metadata);
             LOG.info("Finished uploading to {}.", address);

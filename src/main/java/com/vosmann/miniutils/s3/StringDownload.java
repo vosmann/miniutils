@@ -23,7 +23,7 @@ public class StringDownload implements Runnable {
     private Optional<String> result = Optional.empty();
 
     public StringDownload(Address address, int maxSize, AmazonS3Client client) {
-        checkNotNull(address, "S3Address is null.");
+        checkNotNull(address, "Address is null.");
         checkArgument(maxSize > 0, "Size must be positive.");
         checkNotNull(client, "S3 client is null.");
         this.address = address;
@@ -37,12 +37,14 @@ public class StringDownload implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Downloading max {} bytes from {}.", address);
+        LOG.info("Downloading max {} bytes from {}.", maxSize, address);
         try {
             final S3Object obj = client.getObject(address.getBucket(), address.getKey());
+            final long size = obj.getObjectMetadata().getContentLength();
             warnSize(obj);
+            checkArgument(0 < size && size <= maxSize, "S3 content too large.");
 
-            final Data data = Data.from(maxSize, obj.getObjectContent());
+            final Data data = Data.from((int) size, obj.getObjectContent());
             final String string = data.toString();
 
             if (!isNullOrEmpty(string)) {
@@ -58,9 +60,11 @@ public class StringDownload implements Runnable {
 
     private void warnSize(final S3Object obj) {
         final long objSize = obj.getObjectMetadata().getContentLength();
+        LOG.info("S3 object size at {}/{} is {}B.", obj.getBucketName(), obj.getKey(), objSize);
         if (objSize > (long) maxSize) {
             LOG.warn("The S3 object is bigger than expected: {}B. Will read only {}B.", objSize, maxSize);
         }
     }
 
 }
+
