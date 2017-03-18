@@ -1,16 +1,15 @@
 package com.vosmann.miniutils.url;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
 
-// Add:
-// public static Url from(final String fullUrl)
 public class Url {
 
     private static final int MIN_PORT = 0;
@@ -33,12 +32,12 @@ public class Url {
     private final String host;
     private final int port;
     private final List<String> pathElements;
-    private final Map<String, String> queryParameters;
+    private final Map<String, List<String>> queryParameters;
 
     private final String fullUrl;
 
     private Url(Builder builder) {
-        checkArgument(builder.scheme == SCHEME_HTTP || builder.scheme == SCHEME_HTTPS, "Unsupported scheme.");
+        checkArgument(SCHEME_HTTP.equals(builder.scheme) || SCHEME_HTTPS.equals(builder.scheme), "Unsupported scheme.");
         checkArgument(MIN_PORT <= builder.port && builder.port <= MAX_PORT, "Invalid port.");
         checkArgument(!isNullOrEmpty(builder.host), "Missing host.");
 
@@ -46,8 +45,11 @@ public class Url {
         scheme = builder.scheme;
         host = builder.host;
         port = builder.port;
-        pathElements = builder.pathElements.build();
-        queryParameters = builder.queryParameters.build();
+        pathElements = unmodifiableList(builder.pathElements);
+        final Map<String, List<String>> params = new HashMap<>();
+        builder.queryParameters.forEach((paramName, paramValues) -> params.put(paramName, unmodifiableList
+                (paramValues)));
+        queryParameters = unmodifiableMap(params);
 
         // Full URL.
         final StringBuilder urlBuilder = new StringBuilder().append(scheme)
@@ -67,16 +69,26 @@ public class Url {
         }
 
         String delimiter = QUERY_DELIMITER;
-        for (final Map.Entry<String, String> queryParameter : queryParameters.entrySet()) {
-            if (isNullOrEmpty(queryParameter.getKey()) || isNullOrEmpty(queryParameter.getValue())) {
-                throw new IllegalArgumentException("Null or empty query parameter name/value.");
-            }
-            urlBuilder.append(delimiter)
-                      .append(queryParameter.getKey())
-                      .append(NAME_VALUE_DELIMITER)
-                      .append(queryParameter.getValue());
+        for (final Map.Entry<String, List<String>> queryParameter : queryParameters.entrySet()) {
 
-            delimiter = QUERY_PARAMETER_DELIMITER;
+            final String paramName = queryParameter.getKey();
+            final List<String> paramValues = queryParameter.getValue();
+
+            if (isNullOrEmpty(paramName) || paramValues.isEmpty()) {
+                throw new IllegalArgumentException("Null or empty query parameter name or no values provided.");
+            }
+
+            for (final String paramValue : paramValues) {
+                if (isNullOrEmpty(paramValue)) {
+                    throw new IllegalArgumentException("Null or empty query parameter value.");
+                }
+                urlBuilder.append(delimiter)
+                          .append(paramName)
+                          .append(NAME_VALUE_DELIMITER)
+                          .append(paramValue);
+                delimiter = QUERY_PARAMETER_DELIMITER;
+            }
+
         }
 
         fullUrl = urlBuilder.toString();
@@ -98,11 +110,11 @@ public class Url {
         return pathElements;
     }
 
-    public Map<String, String> getQueryParameters() {
+    public Map<String, List<String>> getQueryParameters() {
         return queryParameters;
     }
 
-    public String getQueryParameter(final String name) {
+    public List<String> getQueryParameter(final String name) {
         return queryParameters.get(name);
     }
 
@@ -111,11 +123,12 @@ public class Url {
     }
 
     public static final class Builder {
+
         private String scheme = SCHEME_HTTP;
         private String host;
         private int port = PORT_DEFAULT;
-        private final ImmutableList.Builder<String> pathElements = ImmutableList.builder();
-        private final ImmutableMap.Builder<String, String> queryParameters = ImmutableMap.builder();
+        private final List<String> pathElements = new ArrayList<>();
+        private final Map<String, List<String>> queryParameters = new HashMap<>();
 
         public Builder scheme(String val) {
             scheme = val;
@@ -138,7 +151,10 @@ public class Url {
         }
 
         public Builder queryParameter(String parameterName, String parameterValue) {
-            queryParameters.put(parameterName, parameterValue);
+            if (!queryParameters.containsKey(parameterName)) {
+                queryParameters.put(parameterName, new ArrayList<>());
+            }
+            queryParameters.get(parameterName).add(parameterValue);
             return this;
         }
 

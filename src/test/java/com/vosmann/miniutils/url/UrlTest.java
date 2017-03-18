@@ -3,6 +3,7 @@ package com.vosmann.miniutils.url;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
+import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -73,7 +74,7 @@ public class UrlTest {
     }
 
     // path elements
-    @Test(expected = NullPointerException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testNullPathElement() {
         new Url.Builder().host("a.com").pathElement(null).build();
     }
@@ -104,7 +105,7 @@ public class UrlTest {
         new Url.Builder().host("a.com").queryParameter("", "some value").build();
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testNullParamName() {
         new Url.Builder().host("a.com").queryParameter(null, "some value").build();
     }
@@ -114,7 +115,7 @@ public class UrlTest {
         new Url.Builder().host("a.com").queryParameter("some name", "").build();
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testNullParamValue() {
         new Url.Builder().host("a.com").queryParameter("some name", null).build();
     }
@@ -124,7 +125,29 @@ public class UrlTest {
         Url url = new Url.Builder().host("a.com").queryParameter("one", "two").build();
 
         assertThat(url.getFullUrl(), is("http://a.com?one=two"));
-        assertThat(url.getQueryParameter("one"), is("two"));
+        assertThat(url.getQueryParameter("one"), is(asList("two")));
+    }
+
+    @Test
+    public void testOkOneMultiParam() {
+        Url url = new Url.Builder().host("a.com").queryParameter("one", "two").queryParameter("one", "ten")
+                                   .build();
+
+        assertThat(url.getFullUrl(), is("http://a.com?one=two&one=ten"));
+        assertThat(url.getQueryParameter("one"), is(asList("two", "ten")));
+    }
+
+    @Test
+    public void testOkTwoMultiParams() {
+        Url url = new Url.Builder().host("a.com")
+                                   .queryParameter("one", "two")
+                                   .queryParameter("one", "ten")
+                                   .queryParameter("dog", "cat")
+                                   .queryParameter("dog", "hamster")
+                                   .build();
+
+        assertThat(url.getFullUrl(), is("http://a.com?one=two&one=ten&dog=cat&dog=hamster"));
+        assertThat(url.getQueryParameter("one"), is(asList("two", "ten")));
     }
 
     @Test
@@ -132,8 +155,8 @@ public class UrlTest {
         Url url = new Url.Builder().host("a.com").queryParameter("one", "two").queryParameter("three", "four").build();
 
         assertThat(url.getFullUrl(), is("http://a.com?one=two&three=four"));
-        assertThat(url.getQueryParameter("one"), is("two"));
-        assertThat(url.getQueryParameter("three"), is("four"));
+        assertThat(url.getQueryParameter("one"), is(asList("two")));
+        assertThat(url.getQueryParameter("three"), is(asList("four")));
     }
 
     @Test
@@ -146,9 +169,8 @@ public class UrlTest {
                                    .build();
 
         assertThat(url.getFullUrl(), is("http://a.com/bat/man?one=two&three=four"));
-        assertThat(url.getQueryParameter("one"), is("two"));
-        assertThat(url.getQueryParameter("three"), is("four"));
+        assertThat(url.getQueryParameter("one"), is(asList("two")));
+        assertThat(url.getQueryParameter("three"), is(asList("four")));
     }
 
 }
-
