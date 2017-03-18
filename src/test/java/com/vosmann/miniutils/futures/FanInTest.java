@@ -23,7 +23,7 @@ public class FanInTest {
         List<CompletableFuture<String>> futures = singletonList(completedFuture("hello"));
 
         FanIn<String> multiFuture = new FanIn<>(futures);
-        FanInResult<String> result = multiFuture.waitForAll();
+        FanInResult<String> result = multiFuture.get();
 
         assertThat(result.getSuccessful(), is(singletonList("hello")));
 
@@ -36,7 +36,7 @@ public class FanInTest {
                 singletonList(exceptionallyCompletedFuture(new NullPointerException("ah")));
 
         FanIn<String> multiFuture = new FanIn<>(futures);
-        FanInResult<String> result = multiFuture.waitForAll();
+        FanInResult<String> result = multiFuture.get();
 
         assertThat(result.getSuccessful(), empty());
 
@@ -54,7 +54,7 @@ public class FanInTest {
         FanIn<String> multiFuture = new FanIn<>
                 (futures);
         FanInResult<String> result = multiFuture
-                .waitForAll();
+                .get();
 
         assertThat(result.getSuccessful(), empty());
 
@@ -68,7 +68,7 @@ public class FanInTest {
                                                          exceptionallyCompletedFuture(new NullPointerException("ah")));
 
         FanIn<String> multiFuture = new FanIn<>(futures);
-        FanInResult<String> result = multiFuture.waitForAll();
+        FanInResult<String> result = multiFuture.get();
 
         assertThat(result.getSuccessful(), hasSize(1));
         assertThat(result.getSuccessful(), is(singletonList("ok")));

@@ -39,7 +39,7 @@ public class FanIn<T> {
     }
 
     /**
-     * Intended to be called by FanInFutureCollector.
+     * Intended to be called by FanInCollector.
      */
     FanIn(final Collection<CompletableFuture<T>> futures) {
         this.multiFutureResult = new FanInResult.Builder<>();
@@ -57,17 +57,23 @@ public class FanIn<T> {
     }
 
     /**
-     * Blocks to wait for all of the futures to finish.
+     * Blocking call that waits for all futures to finish.
      *
-     * @return FanInResult containing results of successfully completed futures and Throwables for failed
-     * ones.
+     * @return FanInResult containing results of successfully completed futures and Throwables for failed ones.
      */
-    public FanInResult<T> waitForAll() {
+    public FanInResult<T> get() {
         allOf().join();
         return multiFutureResult.build();
     }
 
-    public FanInResult<T> waitForAll(final long timeout, final TimeUnit unit) {
+    /**
+     * Blocking call that waits for all futures to finish.
+     *
+     * @param timeout How long to wait.
+     * @param unit    Waiting unit.
+     * @return FanInResult containing results of successfully completed futures and Throwables for failed ones.
+     */
+    public FanInResult<T> get(final long timeout, final TimeUnit unit) {
         try {
             allOf().get(timeout, unit);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -91,11 +97,11 @@ public class FanIn<T> {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
     }
 
-    public static class FanInFutureCollector<T>
+    public static class FanInCollector<T>
             implements Collector<CompletableFuture<T>, ImmutableList.Builder<CompletableFuture<T>>, FanIn<T>> {
 
-        public static <T> FanInFutureCollector<T> toFanInFuture() {
-            return new FanInFutureCollector<>();
+        public static <T> FanInCollector<T> toFanIn() {
+            return new FanInCollector<>();
         }
 
         @Override
